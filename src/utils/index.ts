@@ -19,7 +19,6 @@ import { initializeDbCache } from "../cache";
 import { initializeClients } from "../clients";
 import { character } from "../character";
 import { startChat } from "../chat";
-import solanaPlugin from "@elizaos/plugin-solana";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -53,10 +52,6 @@ export function createAgent(
     character,
     plugins: [
       bootstrapPlugin,
-      getSecret(character, "WALLET_PUBLIC_KEY") &&
-      !getSecret(character, "WALLET_PUBLIC_KEY")?.startsWith("0x")
-        ? solanaPlugin
-        : null,
       getSecret(character, "OPEN_WEATHER_API_KEY") ? openWeatherPlugin : null,
     ].filter(Boolean),
     providers: [],
