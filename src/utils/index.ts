@@ -7,7 +7,6 @@ import {
   type Character,
 } from "@elizaos/core";
 import { bootstrapPlugin } from "@elizaos/plugin-bootstrap";
-import { createNodePlugin } from "@elizaos/plugin-node";
 import fs from "fs";
 import net from "net";
 import path from "path";
@@ -24,8 +23,6 @@ import solanaPlugin from "@elizaos/plugin-solana";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
-let nodePlugin: any | undefined;
 
 export function getSecret(character: Character, secret: string) {
   return character.settings?.secrets?.[secret] || process.env[secret];
@@ -48,8 +45,6 @@ export function createAgent(
     character.name
   );
 
-  nodePlugin ??= createNodePlugin();
-
   return new AgentRuntime({
     databaseAdapter: db,
     token,
@@ -58,7 +53,6 @@ export function createAgent(
     character,
     plugins: [
       bootstrapPlugin,
-      nodePlugin,
       getSecret(character, "WALLET_PUBLIC_KEY") &&
       !getSecret(character, "WALLET_PUBLIC_KEY")?.startsWith("0x")
         ? solanaPlugin
