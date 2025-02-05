@@ -20,6 +20,7 @@ import { initializeDbCache } from "../cache";
 import { initializeClients } from "../clients";
 import { character } from "../character";
 import { startChat } from "../chat";
+import solanaPlugin from "@elizaos/plugin-solana";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -39,12 +40,12 @@ export function createAgent(
   character: Character,
   db: any,
   cache: any,
-  token: string,
+  token: string
 ) {
   elizaLogger.success(
     elizaLogger.successesTitle,
     "Creating runtime for character",
-    character.name,
+    character.name
   );
 
   nodePlugin ??= createNodePlugin();
@@ -58,7 +59,10 @@ export function createAgent(
     plugins: [
       bootstrapPlugin,
       nodePlugin,
-
+      getSecret(character, "WALLET_PUBLIC_KEY") &&
+      !getSecret(character, "WALLET_PUBLIC_KEY")?.startsWith("0x")
+        ? solanaPlugin
+        : null,
       getSecret(character, "OPEN_WEATHER_API_KEY") ? openWeatherPlugin : null,
     ].filter(Boolean),
     providers: [],
@@ -100,7 +104,7 @@ async function startAgent(character: Character, directClient: DirectClient) {
   } catch (error) {
     elizaLogger.error(
       `Error starting agent for character ${character.name}:`,
-      error,
+      error
     );
     console.error(error);
     throw error;
@@ -124,6 +128,30 @@ export const checkPortAvailable = (port: number): Promise<boolean> => {
     server.listen(port);
   });
 };
+
+async function handlePluginImporting(plugins: string[]) {
+  if (plugins.length > 0) {
+    elizaLogger.info("Plugins are: ", plugins);
+    const importedPlugins = await Promise.all(
+      plugins.map(async (plugin) => {
+        try {
+          const importedPlugin = await import(plugin);
+          const functionName =
+            plugin
+              .replace("@elizaos/plugin-", "")
+              .replace(/-./g, (x) => x[1].toUpperCase()) + "Plugin"; // Assumes plugin function is camelCased with Plugin suffix
+          return importedPlugin.default || importedPlugin[functionName];
+        } catch (importError) {
+          elizaLogger.error(`Failed to import plugin: ${plugin}`, importError);
+          return []; // Return null for failed imports
+        }
+      })
+    );
+    return importedPlugins;
+  } else {
+    return [];
+  }
+}
 
 export const startAgents = async () => {
   const directClient = new DirectClient();
@@ -152,6 +180,8 @@ export const startAgents = async () => {
   // upload some agent functionality into directClient
   directClient.startAgent = async (character: Character) => {
     // wrap it so we don't have to inject directClient later
+
+    character.plugins = await handlePluginImporting(character.plugins);
     return startAgent(character, directClient);
   };
 

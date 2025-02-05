@@ -20,6 +20,7 @@
     "@elizaos/plugin-bootstrap": "0.1.9",
     "@elizaos/plugin-node": "0.1.9",
     "@elizaos/plugin-open-weather": "^0.1.9",
+    "@elizaos/plugin-solana": "^0.1.9",
     "@tavily/core": "0.0.2",
     "amqplib": "0.10.5",
     "better-sqlite3": "11.5.0",
